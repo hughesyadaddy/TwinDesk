@@ -182,7 +182,7 @@ final class Injector {
     if let kt = KeyCodes.system[code] { return systemKey(kt, down: down) }
     if code == "Space" {
       let held = Set(heldMods.map(Injector.kind))
-      if down && (held == ["Control"] || held == ["Control", "Alt"]) {
+      if down && InputSourceShortcut.shouldSwitch(heldKinds: held) {
         swallowSpace = true
         modsOnly = false
         InputSources.next()
@@ -272,6 +272,15 @@ final class Injector {
 
 // The keyboard layouts and input methods the person enabled, as the input menu lists them.
 enum InputSources {
+  static func selectableCount() -> Int {
+    let props = [
+      kTISPropertyInputSourceCategory as String: kTISCategoryKeyboardInputSource as String,
+      kTISPropertyInputSourceIsSelectCapable as String: true,
+    ] as CFDictionary
+    guard let list = TISCreateInputSourceList(props, false)?.takeRetainedValue() as? [TISInputSource] else { return 0 }
+    return list.count
+  }
+
   /// The next one after the current (Ctrl+Space's "previous input source" with two of them).
   static func next() {
     let props = [
